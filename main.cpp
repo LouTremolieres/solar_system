@@ -42,12 +42,16 @@ const static float kRadOrbitEarth = 10;
 const static float kRadOrbitMoon = 2;
 
 //Model transformation matrices
-glm::mat4 g_sun, g_earth, g_moon {};
+//glm::mat4 g_sun, g_earth, g_moon {};
 
 //Sphere mesh
 Mesh* sun;
 Mesh* earth;
 Mesh* moon;
+
+GLuint g_earthTexId;
+//GLuint g_sunTexId;
+GLuint g_moonTexId;
 
 // Window parameters
 GLFWwindow *g_window = nullptr;
@@ -104,8 +108,15 @@ GLuint loadTextureFromFileToGPU(const std::string &filename) {
     0);
 
   GLuint texID;
-  // TODO: create a texture and upload the image data in GPU memory using
-  // glGenTextures, glBindTexture, glTexParameteri, and glTexImage2D
+  glGenTextures(1, &texID); // generate an OpenGL texture container
+  glBindTexture(GL_TEXTURE_2D, texID); // activate the texture
+  // Setup the texture filtering option and repeat mode; check www.opengl.org for details.
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // Fill the GPU texture with the data stored in the CPU image
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
   // Free useless CPU memory
   stbi_image_free(data);
@@ -213,6 +224,12 @@ void initGPUprogram() {
   g_program = glCreateProgram(); // Create a GPU program, i.e., two central shaders of the graphics pipeline
   loadShader(g_program, GL_VERTEX_SHADER, "vertexShader.glsl");
   loadShader(g_program, GL_FRAGMENT_SHADER, "fragmentShader.glsl");
+
+  g_earthTexId = loadTextureFromFileToGPU("media/earth.jpg");
+  //g_sunTexId = loadTextureFromFileToGPU("media/sun.jpg");
+  g_moonTexId = loadTextureFromFileToGPU("media/moon.jpg");
+
+
   glLinkProgram(g_program); // The main GPU program is ready to be handle streams of polygons
 
   glUseProgram(g_program);
@@ -262,8 +279,6 @@ void init() {
 
 
   //Sun initialization
-  sun->setModelMatrix(glm::scale(sun->getModelMatrix(), glm::vec3(kSizeSun)));
-
   sun->setIsLighted(false);
   sun->setPlanetColor(glm::vec3(0.85,0.85,0));
 
@@ -271,19 +286,12 @@ void init() {
 
 
   //Earth initialization
-  earth->setModelMatrix(glm::translate(earth->getModelMatrix(), glm::vec3(10,0,0)));
-  earth->setModelMatrix(glm::scale(earth->getModelMatrix(), glm::vec3(kSizeEarth)));
-
   earth->setPlanetColor(glm::vec3(0,0.5,0));
 
   earth->init();
 
 
   //Moon initialization
-  moon->setModelMatrix(glm::translate(moon->getModelMatrix(), glm::vec3(10,0,0)));
-  moon->setModelMatrix(glm::translate(moon->getModelMatrix(), glm::vec3(2,0,0)));
-  moon->setModelMatrix(glm::scale(moon->getModelMatrix(), glm::vec3(kSizeMoon)));
-
   moon->setPlanetColor(glm::vec3(0.3,0.3,0.6));
 
   moon->init();
@@ -310,14 +318,53 @@ void render() {
 
   glUniformMatrix4fv(glGetUniformLocation(g_program, "viewMat"), 1, GL_FALSE, glm::value_ptr(viewMatrix)); // compute the view matrix of the camera and pass it to the GPU program
   glUniformMatrix4fv(glGetUniformLocation(g_program, "projMat"), 1, GL_FALSE, glm::value_ptr(projMatrix)); // compute the projection matrix of the camera and pass it to the GPU program
+
+  //Bind earth texture
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, g_earthTexId);
+  //Bind moon texture
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, g_moonTexId);
+
   sun->render(g_program);
+  glUniform1i(glGetUniformLocation(g_program, "material.albedoTex"), 0); //texture unit 0
   earth->render(g_program);
+  
+  glUniform1i(glGetUniformLocation(g_program, "material.albedoTex"), 1); //texture unit 1
   moon->render(g_program);
 }
 
 // Update any accessible variable based on the current time
 void update(const float currentTimeInSec) {
-  // std::cout << currentTimeInSec << std::endl;
+
+  float angularRotationEarth = currentTimeInSec;
+
+  earth->setModelMatrix(glm::mat4(1.0));
+  sun->setModelMatrix(glm::mat4(1.0));
+  moon->setModelMatrix(glm::mat4(1.0));
+
+  //Rotation of the earth around the sun
+  //The moon has the same transformations so that the next ones are relative to earth
+  earth->setModelMatrix(glm::rotate(earth->getModelMatrix(), 0.5f*angularRotationEarth, glm::vec3(0,1,0)));
+  moon->setModelMatrix(glm::rotate(moon->getModelMatrix(), 0.5f*angularRotationEarth, glm::vec3(0,1,0)));
+
+  earth->setModelMatrix(glm::translate(earth->getModelMatrix(), glm::vec3(kRadOrbitEarth,0,0)));
+  moon->setModelMatrix(glm::translate(moon->getModelMatrix(), glm::vec3(kRadOrbitEarth,0,0)));
+
+
+  //Orbit of the moon around the earth
+  moon->setModelMatrix(glm::rotate(moon->getModelMatrix(),2.0f*angularRotationEarth, glm::vec3(0,1,0)));
+  moon->setModelMatrix(glm::translate(moon->getModelMatrix(), glm::vec3(kRadOrbitMoon,0,0)));
+  
+
+  //Scaling of each sphere
+  sun->setModelMatrix(glm::scale(sun->getModelMatrix(), glm::vec3(kSizeSun)));
+  earth->setModelMatrix(glm::scale(earth->getModelMatrix(), glm::vec3(kSizeEarth)));
+  moon->setModelMatrix(glm::scale(moon->getModelMatrix(), glm::vec3(kSizeMoon)));
+
+  //Rotation of earth around its tilted axe :
+  earth->setModelMatrix(glm::rotate(earth->getModelMatrix(), 0.41f, glm::vec3(1,0,0)));
+  earth->setModelMatrix(glm::rotate(earth->getModelMatrix(), angularRotationEarth, glm::vec3(0,1,0)));
 
   g_camera.setPosition(glm::vec3(0 /**cos(currentTimeInSec)*/, 0, 30.0f /** sin(currentTimeInSec)*/));
 

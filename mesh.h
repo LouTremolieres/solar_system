@@ -23,11 +23,15 @@ public:
     void setModelMatrix(glm::mat4 modelMatrix) {this->modelMatrix = modelMatrix;}
     glm::mat4 getModelMatrix() {return modelMatrix;}
 
+    //Setter for isLigthed variable
     void setIsLighted(bool isLighted) {this->isLighted = isLighted;}
 
+    //Setter for planet color
     void setPlanetColor(glm::vec3 planetColor) {this->planetColor = planetColor;}
     
-    // ...
+    //Getter of texture coordinates
+    std::vector<float> getMVertexCoords() {return m_vertexTexCoords;}
+
 private:
     glm::mat4 modelMatrix = glm::mat4(1.0);
     std::vector<float> m_vertexPositions;
@@ -36,10 +40,11 @@ private:
     GLuint m_vao = 0;
     GLuint m_posVbo = 0;
     GLuint m_normalVbo = 0;
+    GLuint m_texCoordVbo = 0;
     GLuint m_ibo = 0;
     bool isLighted = true;
     glm::vec3 planetColor = glm::vec3(1.0);
-    // ...
+    std::vector<float> m_vertexTexCoords;
 
 };
 

@@ -1,9 +1,10 @@
 #include "mesh.h"
 
 #include <iostream>
+#include <memory>
 
-const static int nbOfCircles = 100;
-const static int nbOfVerticesPCircle = 100;
+const static int nbOfCircles = 10;
+const static int nbOfVerticesPCircle = 10;
 
 void Mesh::init()
 {
@@ -52,6 +53,22 @@ void Mesh::init()
   glEnableVertexAttribArray(0);
 #endif
 
+  //Same for a texture buffer
+  size_t textureBufferSize = sizeof(float)*m_vertexTexCoords.size(); // Gather the size of the buffer from the CPU-side vector
+#ifdef _MY_OPENGL_IS_33_
+  glGenBuffers(1, &m_texCoordVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, m_texCoordVbo);
+  glBufferData(GL_ARRAY_BUFFER, textureBufferSize, m_vertexTexCoords.data(), GL_DYNAMIC_READ);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), 0);
+  glEnableVertexAttribArray(2);
+#else
+  glCreateBuffers(1, &m_texCoordVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, m_texCoordVbo);
+  glNamedBufferStorage(m_texCoordVbo, vertexBufferSize, m_vertexTexCoords.data(), GL_DYNAMIC_STORAGE_BIT); // Create a data storage on the GPU and fill it from a CPU array
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), 0);
+  glEnableVertexAttribArray(2);
+#endif
+
   // Same for an index buffer object that stores the list of indices of the
   // triangles forming the mesh
   size_t indexBufferSize = sizeof(unsigned int)*m_triangleIndices.size();
@@ -80,6 +97,12 @@ void Mesh::initSphere()
       m_vertexNormals.push_back((m_vertexPositions[i]));
     }
 
+    for (int y = 0; y<nbOfCircles; y++) {
+      for (int x = 0; x<nbOfVerticesPCircle ; x ++) {
+        m_vertexTexCoords.push_back(float(x/(nbOfVerticesPCircle-1)));
+        m_vertexTexCoords.push_back(float(y/(nbOfCircles-1)));
+      }
+    }
 }
 
 /**
