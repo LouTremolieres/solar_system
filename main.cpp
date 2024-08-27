@@ -286,14 +286,14 @@ void init() {
 
 
   //Earth initialization
-  earth->setPlanetColor(glm::vec3(0,0.5,0));
-
+  //earth->setPlanetColor(glm::vec3(0,0.5,0));
+  earth->setPlanetColor(glm::vec3(0.8,0.8,0.8));
   earth->init();
 
 
   //Moon initialization
-  moon->setPlanetColor(glm::vec3(0.3,0.3,0.6));
-
+  //moon->setPlanetColor(glm::vec3(0.3,0.3,0.6));
+  moon->setPlanetColor(glm::vec3(0.8,0.8,0.8));
   moon->init();
 
   initCamera();
@@ -309,6 +309,7 @@ void clear() {
 // The main rendering call
 void render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
+  glClearColor(0.0,0.0,0.1,0.0);
 
   const glm::mat4 viewMatrix = g_camera.computeViewMatrix();
   const glm::mat4 projMatrix = g_camera.computeProjectionMatrix();
@@ -325,8 +326,14 @@ void render() {
   //Bind moon texture
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, g_moonTexId);
+  
+  /*//Bind sun texture
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, g_sunTexId);
 
+  glUniform1i(glGetUniformLocation(g_program, "material.albedoTex"), 2); //texture unit 2*/
   sun->render(g_program);
+
   glUniform1i(glGetUniformLocation(g_program, "material.albedoTex"), 0); //texture unit 0
   earth->render(g_program);
   
@@ -344,7 +351,7 @@ void update(const float currentTimeInSec) {
   moon->setModelMatrix(glm::mat4(1.0));
 
   //Rotation of the earth around the sun
-  //The moon has the same transformations so that the next ones are relative to earth
+  //The moon has the same transformations as earth, so that its own are relative to earth
   earth->setModelMatrix(glm::rotate(earth->getModelMatrix(), 0.5f*angularRotationEarth, glm::vec3(0,1,0)));
   moon->setModelMatrix(glm::rotate(moon->getModelMatrix(), 0.5f*angularRotationEarth, glm::vec3(0,1,0)));
 
@@ -366,7 +373,7 @@ void update(const float currentTimeInSec) {
   earth->setModelMatrix(glm::rotate(earth->getModelMatrix(), 0.41f, glm::vec3(1,0,0)));
   earth->setModelMatrix(glm::rotate(earth->getModelMatrix(), angularRotationEarth, glm::vec3(0,1,0)));
 
-  g_camera.setPosition(glm::vec3(0 /**cos(currentTimeInSec)*/, 0, 30.0f /** sin(currentTimeInSec)*/));
+  g_camera.setPosition(glm::vec3(0, 0, 20.0f));
 
 }
 

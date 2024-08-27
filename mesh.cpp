@@ -3,8 +3,8 @@
 #include <iostream>
 #include <memory>
 
-const static int nbOfCircles = 10;
-const static int nbOfVerticesPCircle = 10;
+const static int nbOfCircles = 50;
+const static int nbOfVerticesPCircle = 50;
 
 void Mesh::init()
 {
@@ -97,11 +97,16 @@ void Mesh::initSphere()
       m_vertexNormals.push_back((m_vertexPositions[i]));
     }
 
-    for (int y = 0; y<nbOfCircles; y++) {
-      for (int x = 0; x<nbOfVerticesPCircle ; x ++) {
-        m_vertexTexCoords.push_back(float(x/(nbOfVerticesPCircle-1)));
-        m_vertexTexCoords.push_back(float(y/(nbOfCircles-1)));
-      }
+    for(int i = 0 ; i<m_vertexPositions.size(); i+=3) {
+      float x = m_vertexPositions[i];
+      float y = m_vertexPositions[i+1];
+      float z = m_vertexPositions[i+2];
+
+      float u = 0.5f + atan2(z,x)/(2*M_PI);
+      float v = 0.5f + asin(y)/M_PI;
+
+      m_vertexTexCoords.push_back(u);
+      m_vertexTexCoords.push_back(v);
     }
 }
 
